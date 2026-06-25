@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy P2P Chat Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .chat-container { width: 400px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); padding: 20px; }
+        h3 { margin-top: 0; color: #333; text-align: center; }
+        #chat-box { height: 250px; border: 1px solid #ccc; overflow-y: auto; padding: 10px; margin-bottom: 10px; border-radius: 4px; background: #fafafa; display: flex; flex-direction: column; gap: 5px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button.send-btn { background: #007bff; }
+        .status { font-size: 13px; color: #666; text-align: center; margin-bottom: 10px; font-weight: bold; }
+    </style>
+
+    <script>
+        // HACK: Node Environment Mock for Browser
+        window.exports = {};
+        window.module = { exports: window.exports };
+        
+        // Agar library peer-to-peer library dhoodhe toh dummy object return karega
+        window.require = function(moduleName) {
+            console.log("Library requested node module:", moduleName);
+            return window.SimplePeer || {}; 
+        };
+    </script>
+    
+    <script src="./node_modules/@puspendra/easy-p2p-chat/lib/index.js"></script>
+</head>
+<body>
+
+<div class="chat-container">
+    <h3>🚀 Easy P2P Chat Test</h3>
+    <div class="status" id="status">Status: Initializing...</div>
+    
+    <div class="input-group">
+        <input type="text" id="room-input" placeholder="Enter Room ID...">
+        <button id="connect-btn">Connect</button>
+    </div>
+
+    <div id="chat-box"></div>
+
+    <div class="input-group">
+        <input type="text" id="message-input" placeholder="Type a message..." disabled>
+        <button id="send-btn" class="send-btn" disabled>Send</button>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const statusText = document.getElementById('status');
+    const roomInput = document.getElementById('room-input');
+    const connectBtn = document.getElementById('connect-btn');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    let p2p;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            // Hamari global class check karein
+            const EasyP2PChatClass = window.module.exports.EasyP2PChat || window.exports.EasyP2PChat;
+
+            if (!EasyP2PChatClass) {
+                throw new Error("Library class exports me nahi mili!");
+            }
+
+            p2p = new EasyP2PChatClass();
+            statusText.textContent = "Status: Ready to Connect";
+            statusText.style.color = "blue";
+        } catch (err) {
+            statusText.textContent = "Status: Node Environment Needed";
+            console.error("Initialization Error:", err);
+        }
+    });
+
+    // Connect Button Click
+    connectBtn.addEventListener('click', () => {
+        if(!p2p) return alert("Pehle library load hone do bhai!");
+        
+        const roomId = roomInput.value.trim();
+        if(!roomId) return alert("Pehle Room ID daalo bhai!");
+
+        statusText.textContent = "Status: Connecting...";
+        
+        p2p.connect(roomId);
+
+        // Jab peer connect ho jaye
+        p2p.on('open', () => {
+            statusText.textContent = "Status: Connected! 🎉";
+            statusText.style.color = "green";
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+        });
+
+        // Jab koi message aaye
+        p2p.on('data', (data) => {
+            appendMessage("Peer: " + data, "#f1f1f1", "flex-start");
+        });
+    });
+
+    // Send Message Function
+    sendBtn.addEventListener('click', () => {
+        const msg = messageInput.value.trim();
+        if(!msg) return;
+
+        p2p.send(msg);
+        
+        appendMessage("Me: " + msg, "#dcf8c6", "flex-end");
+        messageInput.value = "";
+    });
+
+    function appendMessage(text, bgColor, align) {
+        const msgNode = document.createElement('div');
+        msgNode.style.padding = "8px 12px";
+        msgNode.style.margin = "5px 0";
+        msgNode.style.borderRadius = "5px";
+        msgNode.style.background = bgColor;
+        msgNode.style.maxWidth = "80%";
+        msgNode.style.alignSelf = align;
+        msgNode.textContent = text;
+        chatBox.appendChild(msgNode);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+</body>
+</html>
